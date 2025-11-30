@@ -213,38 +213,40 @@ def search_google_shopping(
                 print(f"   💾 Saved link: {link_file.name}")
             
             # Save to database if db session provided
+            # Create unique product_id per user session to ensure proper image mapping
             db_product_id = None
             if db:
-                # Check if product already exists by product_id (from API)
-                existing_product = db.query(Product).filter(
-                    Product.product_id == product_id
-                ).first()
+                # Extract user folder for unique product ID
+                user_folder_name = ""
+                if user_folder_path:
+                    user_folder_name = Path(user_folder_path).name
                 
-                if existing_product:
-                    db_product_id = existing_product.id
-                else:
-                    # Create new product in database
-                    db_product = Product(
-                        product_id=product_id,
-                        title=title,
-                        price=price,
-                        extracted_price=item.get("extracted_price"),
-                        old_price=item.get("old_price"),
-                        product_link=product_link,
-                        thumbnail=image_url,
-                        source=source,
-                        source_icon=item.get("source_icon"),
-                        rating=item.get("rating"),
-                        reviews=item.get("reviews"),
-                        snippet=item.get("snippet"),
-                        delivery=item.get("delivery"),
-                        tag=item.get("tag"),
-                        product_type=product_type  # Set from preferences
-                    )
-                    db.add(db_product)
-                    db.commit()
-                    db.refresh(db_product)
-                    db_product_id = db_product.id
+                # Generate session-unique product_id: original_id + user_folder
+                session_product_id = f"{product_id}_{user_folder_name}" if user_folder_name else product_id
+                
+                # Always create new product for this user's search session
+                # This ensures db_product_id matches the image numbering (product_1, product_2, etc.)
+                db_product = Product(
+                    product_id=session_product_id,  # Unique per user session
+                    title=title,
+                    price=price,
+                    extracted_price=item.get("extracted_price"),
+                    old_price=item.get("old_price"),
+                    product_link=product_link,
+                    thumbnail=image_url,
+                    source=source,
+                    source_icon=item.get("source_icon"),
+                    rating=item.get("rating"),
+                    reviews=item.get("reviews"),
+                    snippet=item.get("snippet"),
+                    delivery=item.get("delivery"),
+                    tag=item.get("tag"),
+                    product_type=product_type  # Set from preferences
+                )
+                db.add(db_product)
+                db.commit()
+                db.refresh(db_product)
+                db_product_id = db_product.id
             
             # Add to results list
             products.append({
