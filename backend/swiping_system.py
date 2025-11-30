@@ -55,15 +55,26 @@ class SwipingSystem:
     def get_products(self) -> List[Dict]:
         """
         Get all products with their combined images for swiping.
+        Uses products.json to correctly map product numbers to database IDs.
         
         Returns:
             List of product dictionaries with image paths and metadata
         """
         products = []
         
-        # Get all products from database for this user's search
-        # We'll get products that were created around the same time as user preferences
-        db_products = self.db.query(Product).order_by(Product.created_at.desc()).limit(50).all()
+        # Read products.json which has the correct mapping
+        products_json_path = self.user_path / "products" / "products.json"
+        if not products_json_path.exists():
+            print(f"   ⚠️ products.json not found at {products_json_path}")
+            return []
+        
+        try:
+            import json
+            with open(products_json_path, 'r') as f:
+                saved_products = json.load(f)
+        except Exception as e:
+            print(f"   ⚠️ Error reading products.json: {e}")
+            return []
         
         # Find all product combined images
         if not self.combined_images_dir.exists():
@@ -86,28 +97,36 @@ class SwipingSystem:
                     except ValueError:
                         continue
         
-        # Match database products with images by index
-        for idx, db_product in enumerate(db_products, 1):
-            if idx in product_images:
-                images = product_images[idx]
-                
-                products.append({
-                    "product_id": db_product.id,
-                    "db_product_id": db_product.id,
-                    "title": db_product.title,
-                    "price": db_product.price or "N/A",
-                    "source": db_product.source or "",
-                    "rating": db_product.rating,
-                    "reviews": db_product.reviews,
-                    "product_link": db_product.product_link,
-                    "thumbnail": db_product.thumbnail or "",
-                    "product_type": db_product.product_type,
-                    "images": {
-                        "front": images.get("front"),
-                        "side": images.get("side"),
-                        "back": images.get("back")
-                    }
-                })
+        # Match products from products.json with their images
+        for idx, saved_product in enumerate(saved_products, 1):
+            # Get database product ID from saved product
+            db_product_id = saved_product.get("db_product_id")
+            
+            # Get images for this product number (1-indexed)
+            images = product_images.get(idx, {})
+            
+            # Try to get fresh data from database, fallback to saved data
+            db_product = None
+            if db_product_id:
+                db_product = self.db.query(Product).filter(Product.id == db_product_id).first()
+            
+            products.append({
+                "product_id": db_product_id or idx,
+                "db_product_id": db_product_id,
+                "title": db_product.title if db_product else saved_product.get("title", "Unknown"),
+                "price": db_product.price if db_product else saved_product.get("price", "N/A"),
+                "source": db_product.source if db_product else saved_product.get("source", ""),
+                "rating": db_product.rating if db_product else saved_product.get("rating"),
+                "reviews": db_product.reviews if db_product else saved_product.get("reviews"),
+                "product_link": db_product.product_link if db_product else saved_product.get("product_link", ""),
+                "thumbnail": db_product.thumbnail if db_product else saved_product.get("thumbnail", ""),
+                "product_type": db_product.product_type if db_product else saved_product.get("product_type"),
+                "images": {
+                    "front": images.get("front"),
+                    "side": images.get("side"),
+                    "back": images.get("back")
+                }
+            })
         
         return products
     
@@ -183,11 +202,13 @@ class SwipingSystem:
         product_dir = self.liked_photos_dir / f"product_{product_id}"
         product_dir.mkdir(parents=True, exist_ok=True)
         
-        # Get the product data with image paths
+        # Get the product data with image paths (uses products.json for correct mapping)
         products = self.get_products()
         
+        found = False
         for p in products:
             if p["db_product_id"] == product_id:
+                found = True
                 # Copy each available angle image
                 for angle in ["front", "side", "back"]:
                     src_path_str = p.get("images", {}).get(angle)
@@ -197,7 +218,7 @@ class SwipingSystem:
                             dest = product_dir / f"{angle}.jpg"
                             try:
                                 shutil.copy2(src_path, dest)
-                                print(f"   ✓ Copied {angle} image for product {product_id}")
+                                print(f"   ✓ Copied {angle} image for product {product_id} ({p.get('title', '')[:30]})")
                             except Exception as e:
                                 print(f"   ⚠️ Failed to copy {angle} image: {e}")
                         else:
@@ -205,6 +226,9 @@ class SwipingSystem:
                     else:
                         print(f"   ℹ️ No {angle} image available for product {product_id}")
                 break
+        
+        if not found:
+            print(f"   ⚠️ Product {product_id} not found in products.json - cannot copy images")
     
     def get_liked_products(self) -> List[Dict]:
         """
