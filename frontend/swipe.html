@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StyleSwipe - Find Your Look</title>
+    <link rel="stylesheet" href="theme.css">
+    <link rel="stylesheet" href="swipe.css">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h2>Finding Your Perfect Looks</h2>
+            <p id="loading-status">Searching for clothes matching your style...</p>
+            <div class="loading-progress">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+            <div class="loading-steps" id="loading-steps">
+                <div class="step" data-step="search">
+                    <span class="step-icon">🔍</span>
+                    <span class="step-text">Searching products...</span>
+                </div>
+                <div class="step" data-step="download">
+                    <span class="step-icon">📥</span>
+                    <span class="step-text">Downloading images...</span>
+                </div>
+                <div class="step" data-step="generate">
+                    <span class="step-icon">✨</span>
+                    <span class="step-text">Generating try-on images...</span>
+                </div>
+                <div class="step" data-step="ready">
+                    <span class="step-icon">🎉</span>
+                    <span class="step-text">Ready to swipe!</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Swipe Interface -->
+    <div id="swipe-container" class="swipe-container hidden">
+        <header class="swipe-header">
+            <h1>StyleSwipe</h1>
+            <div class="swipe-progress">
+                <span id="progress-text">0 / 0</span>
+            </div>
+        </header>
+
+        <div class="cards-container" id="cards-container">
+            <!-- Cards will be dynamically added here -->
+        </div>
+
+        <div class="card-info" id="card-info">
+            <h3 id="product-title">Product Name</h3>
+            <p id="product-price" class="price">£0.00</p>
+            <p id="product-source" class="source">Source</p>
+            <div class="angle-indicator">
+                <span class="angle-dot active" data-angle="front"></span>
+                <span class="angle-dot" data-angle="side"></span>
+                <span class="angle-dot" data-angle="back"></span>
+            </div>
+            <p class="tap-hint">Tap card to see different angles</p>
+        </div>
+
+        <div class="swipe-actions">
+            <button class="action-btn dislike" id="btn-dislike" title="Not for me">
+                <span>✕</span>
+            </button>
+            <button class="action-btn like" id="btn-like" title="Love it!">
+                <span>♥</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Results Screen -->
+    <div id="results-screen" class="results-screen hidden">
+        <header class="results-header">
+            <h1>Your Liked Items</h1>
+            <p id="results-summary">You liked <span id="liked-count">0</span> items</p>
+        </header>
+
+        <div class="liked-items" id="liked-items">
+            <!-- Liked items will be populated here -->
+        </div>
+
+        <div class="results-actions">
+            <button class="btn-secondary" id="btn-restart">Start Over</button>
+        </div>
+    </div>
+
+    <!-- No Products Message -->
+    <div id="no-products" class="no-products hidden">
+        <div class="empty-state">
+            <span class="empty-icon">👗</span>
+            <h2>No Products Found</h2>
+            <p>We couldn't find any products matching your preferences. Try adjusting your style settings.</p>
+            <button class="btn-primary" onclick="window.location.href='preferences.html'">Update Preferences</button>
+        </div>
+    </div>
+
+    <script src="swipe.js"></script>
+</body>
+</html>
+

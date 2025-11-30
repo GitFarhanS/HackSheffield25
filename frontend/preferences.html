@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StyleSwipe - Your Preferences</title>
+    <link rel="stylesheet" href="theme.css">
+    <link rel="stylesheet" href="preferences.css">
+</head>
+<body>
+    <div class="container">
+        <div class="card preferences-card">
+            <div class="header-section">
+                <div class="logo">✨</div>
+                <h1>Tell Us Your Style</h1>
+                <p class="subtitle">Help us find the perfect looks for you</p>
+            </div>
+
+            <form id="preferencesForm">
+                <input type="hidden" id="userFolder" name="userFolder">
+
+                <div class="form-section">
+                    <h2>📋 Basic Information</h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="gender">Gender</label>
+                            <select id="gender" name="gender" required>
+                                <option value="">Select gender</option>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="non-binary">Non-binary</option>
+                                <option value="prefer-not-to-say">Prefer not to say</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="size">Size</label>
+                            <select id="size" name="size" required>
+                                <option value="">Select size</option>
+                                <option value="XS">XS</option>
+                                <option value="S">S</option>
+                                <option value="M">M</option>
+                                <option value="L">L</option>
+                                <option value="XL">XL</option>
+                                <option value="XXL">XXL</option>
+                                <option value="XXXL">XXXL</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h2>🎨 Clothing Style</h2>
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="style" value="casual">
+                            <span>Casual</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="style" value="formal">
+                            <span>Formal</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="style" value="sporty">
+                            <span>Sporty</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="style" value="streetwear">
+                            <span>Streetwear</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="style" value="vintage">
+                            <span>Vintage</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="style" value="minimalist">
+                            <span>Minimalist</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="style" value="bohemian">
+                            <span>Bohemian</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="style" value="elegant">
+                            <span>Elegant</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h2>👕 Clothing Types</h2>
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="clothing_types" value="tops">
+                            <span>Tops</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="clothing_types" value="bottoms">
+                            <span>Bottoms</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="clothing_types" value="dresses">
+                            <span>Dresses</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="clothing_types" value="outerwear">
+                            <span>Outerwear</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="clothing_types" value="shoes">
+                            <span>Shoes</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="clothing_types" value="accessories">
+                            <span>Accessories</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="clothing_types" value="activewear">
+                            <span>Activewear</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="clothing_types" value="underwear">
+                            <span>Underwear</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h2>💰 Additional Preferences</h2>
+                    <div class="form-group">
+                        <label for="budget">Budget Range</label>
+                        <select id="budget" name="budget">
+                            <option value="">Select budget range</option>
+                            <option value="low">Budget (£0 - £50)</option>
+                            <option value="medium">Mid-range (£50 - £150)</option>
+                            <option value="high">Premium (£150 - £300)</option>
+                            <option value="premium">Luxury (£300+)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="colors">Preferred Colors</label>
+                        <input type="text" id="colors" name="colors" 
+                               placeholder="e.g., black, navy, white, burgundy">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="notes">Additional Notes</label>
+                        <textarea id="notes" name="notes" rows="3" 
+                                  placeholder="Any specific preferences or requirements..."></textarea>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button type="button" id="backBtn" class="btn-secondary">← Back</button>
+                    <button type="submit" id="submitBtn" class="btn-primary">
+                        <span id="submitText">Find My Looks →</span>
+                        <span id="submitLoader" class="loader" style="display: none;"></span>
+                    </button>
+                </div>
+
+                <div id="message" class="message"></div>
+            </form>
+        </div>
+    </div>
+
+    <script src="preferences.js"></script>
+</body>
+</html>

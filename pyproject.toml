@@ -1,0 +1,24 @@
+[project]
+name = "hacksheffield-image-upload"
+version = "1.0.0"
+description = "FastAPI application for uploading user images and finding clothing recommendations"
+requires-python = ">=3.9"
+dependencies = [
+    "fastapi==0.104.1",
+    "uvicorn[standard]==0.24.0",
+    "python-multipart==0.0.6",
+    "requests==2.31.0",
+    "python-dotenv==1.0.0",
+    "beautifulsoup4==4.12.2",
+    "google-genai>=0.3.0",
+    "Pillow==10.1.0",
+    "sqlalchemy==2.0.23",
+    "psycopg2-binary==2.9.9",
+    "alembic==1.12.1",
+    "prometheus-client==0.19.0",
+]
+
+[tool.uv]
+# Use uv for dependency management without building as a package
+package = false
+
