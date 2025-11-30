@@ -183,33 +183,33 @@ class SwipingSystem:
         product_dir = self.liked_photos_dir / f"product_{product_id}"
         product_dir.mkdir(parents=True, exist_ok=True)
         
-        # Find and copy combined images - handle jpg, jpeg, and png
-        for pattern in ["product_*_*.jpg", "product_*_*.jpeg", "product_*_*.png"]:
-            for img_file in sorted(self.combined_images_dir.glob(pattern)):
-                parts = img_file.stem.split("_")
-                if len(parts) >= 3:
-                    try:
-                        img_product_num = int(parts[1])
-                        angle = parts[2]
-                        
-                        # Match by position in products list (rough match)
-                        # This is a limitation - we need better product-to-image mapping
-                        products = self.get_products()
-                        for p in products:
-                            if p["db_product_id"] == product_id:
-                                # Try to find images for this product
-                                if angle in p.get("images", {}):
-                                    src_path = Path(p["images"][angle])
-                                    if src_path.exists():
-                                        dest = product_dir / f"{angle}.jpg"
-                                        shutil.copy2(src_path, dest)
-                                break
-                    except ValueError:
-                        continue
+        # Get the product data with image paths
+        products = self.get_products()
+        
+        for p in products:
+            if p["db_product_id"] == product_id:
+                # Copy each available angle image
+                for angle in ["front", "side", "back"]:
+                    src_path_str = p.get("images", {}).get(angle)
+                    if src_path_str:
+                        src_path = Path(src_path_str)
+                        if src_path.exists():
+                            dest = product_dir / f"{angle}.jpg"
+                            try:
+                                shutil.copy2(src_path, dest)
+                                print(f"   ✓ Copied {angle} image for product {product_id}")
+                            except Exception as e:
+                                print(f"   ⚠️ Failed to copy {angle} image: {e}")
+                        else:
+                            print(f"   ⚠️ Source image not found for {angle}: {src_path}")
+                    else:
+                        print(f"   ℹ️ No {angle} image available for product {product_id}")
+                break
     
     def get_liked_products(self) -> List[Dict]:
         """
         Get all liked products with their metadata and images.
+        Always returns products even if some images are missing.
         
         Returns:
             List of liked product data
@@ -223,17 +223,21 @@ class SwipingSystem:
         
         for liked_record in liked_records:
             product = liked_record.product
+            if not product:
+                continue
             
             # Get image paths - handle both jpg and png
             product_dir = self.liked_photos_dir / f"product_{product.id}"
-            images = {}
+            images = {"front": None, "side": None, "back": None}
+            
             if product_dir.exists():
                 def find_image(angle):
                     """Find image with any extension (jpg, jpeg, png)"""
                     for ext in ['.jpg', '.jpeg', '.png', '.JPG', '.JPEG', '.PNG']:
                         img_path = product_dir / f"{angle}{ext}"
                         if img_path.exists():
-                            return str(img_path)
+                            # Return relative path for API
+                            return f"{self.user_folder}/liked_photos/product_{product.id}/{angle}{ext}"
                     return None
                 
                 images = {
@@ -241,6 +245,21 @@ class SwipingSystem:
                     "side": find_image("side"),
                     "back": find_image("back")
                 }
+            
+            # Also check combined_images as fallback
+            if not any(images.values()):
+                all_products = self.get_products()
+                for p in all_products:
+                    if p["db_product_id"] == product.id:
+                        # Use combined images as fallback
+                        for angle in ["front", "side", "back"]:
+                            if p.get("images", {}).get(angle):
+                                # Extract relative path from full path
+                                full_path = p["images"][angle]
+                                if self.user_folder in full_path:
+                                    images[angle] = full_path.split(f"{self.user_folder}/")[-1]
+                                    images[angle] = f"{self.user_folder}/{images[angle]}"
+                        break
             
             liked_products.append({
                 "product_id": product.id,
@@ -253,7 +272,8 @@ class SwipingSystem:
                 "thumbnail": product.thumbnail,
                 "product_type": product.product_type,
                 "liked_at": liked_record.liked_at.isoformat() if liked_record.liked_at else None,
-                "images": images
+                "images": images,
+                "has_images": any(images.values())
             })
         
         return liked_products

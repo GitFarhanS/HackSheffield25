@@ -437,6 +437,23 @@ body {
     object-fit: cover;
 }
 
+.liked-item-images .no-image-placeholder {
+    width: 100%;
+    height: 100%;
+    background: var(--bg-card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.liked-item-images .no-image-placeholder::after {
+    content: "📷";
+    font-size: 1.5rem;
+    opacity: 0.3;
+}
+
 .liked-item-info {
     padding: 1.25rem;
 }

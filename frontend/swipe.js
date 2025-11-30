@@ -218,25 +218,44 @@ async function loadLikedProducts() {
 
 /**
  * Render liked products in results
+ * Shows all liked products even if some images are missing
  */
 function renderLikedProducts(likedProducts) {
     likedItems.innerHTML = likedProducts.map(product => {
-        const frontImg = product.images?.front ? 
-            `${API_BASE}/api/image/${userFolder}/liked_photos/product_${product.product_id}/front.jpg` : '';
-        const sideImg = product.images?.side ? 
-            `${API_BASE}/api/image/${userFolder}/liked_photos/product_${product.product_id}/side.jpg` : '';
-        const backImg = product.images?.back ? 
-            `${API_BASE}/api/image/${userFolder}/liked_photos/product_${product.product_id}/back.jpg` : '';
+        // Build image URLs - use API path if available, fallback to thumbnail
+        const getImageUrl = (angle) => {
+            if (product.images?.[angle]) {
+                return `${API_BASE}/api/image/${product.images[angle]}`;
+            }
+            return null;
+        };
+        
+        const frontImg = getImageUrl('front');
+        const sideImg = getImageUrl('side');
+        const backImg = getImageUrl('back');
+        
+        // Use thumbnail as fallback if no images available
+        const fallbackImg = product.thumbnail || '';
+        const hasAnyImage = frontImg || sideImg || backImg || fallbackImg;
         
         const ratingHtml = product.rating ? 
             `<p class="rating">⭐ ${product.rating} (${product.reviews || 0} reviews)</p>` : '';
         
+        // Create image elements - show placeholder for missing angles
+        const createImgElement = (src, alt) => {
+            if (src) {
+                return `<img src="${src}" alt="${alt}" onerror="this.style.display='none'">`;
+            }
+            return `<div class="no-image-placeholder" title="Image not available"></div>`;
+        };
+        
         return `
             <div class="liked-item">
                 <div class="liked-item-images">
-                    ${frontImg ? `<img src="${frontImg}" alt="Front view">` : '<div></div>'}
-                    ${sideImg ? `<img src="${sideImg}" alt="Side view">` : '<div></div>'}
-                    ${backImg ? `<img src="${backImg}" alt="Back view">` : '<div></div>'}
+                    ${frontImg ? createImgElement(frontImg, 'Front view') : 
+                        (fallbackImg ? createImgElement(fallbackImg, 'Product') : createImgElement(null, 'Front'))}
+                    ${createImgElement(sideImg, 'Side view')}
+                    ${createImgElement(backImg, 'Back view')}
                 </div>
                 <div class="liked-item-info">
                     <h3>${product.title || 'Product'}</h3>

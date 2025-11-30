@@ -103,7 +103,7 @@ def generate_clothing_image_for_angle(
         prompt = (
             f"Take these 2 images ({angle_desc} of the person, and the clothing item) "
             f"and generate a realistic image of the person wearing this clothing item from the {angle_desc}. "
-            f"Make sure the clothing fits naturally on the person and looks realistic."
+            f"Make sure the clothing fits naturally on the person and looks realistic. Make it in a 9:16 aspect ratio and centred towards the person."
         )
         
         print(f"   Generating {angle} view...")
