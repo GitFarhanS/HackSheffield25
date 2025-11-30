@@ -5,10 +5,12 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict
 from sqlalchemy.orm import Session
 import os
+import io
 from pathlib import Path
 import json
 import uvicorn
 import time
+from PIL import Image
 
 # Handle imports whether running from backend/ or project root
 try:
@@ -43,6 +45,62 @@ IMAGES_DIR = BASE_DIR / "data" / "user_images"
 
 # Create the directory if it doesn't exist
 IMAGES_DIR.mkdir(parents=True, exist_ok=True)
+
+# Image compression settings
+MAX_IMAGE_SIZE = 1024  # Max dimension in pixels for user images
+IMAGE_QUALITY = 90  # JPEG quality (higher for user images since they're important)
+
+
+def compress_image(image_data: bytes, save_path: Path, max_size: int = MAX_IMAGE_SIZE, quality: int = IMAGE_QUALITY) -> dict:
+    """
+    Compress an uploaded image using Pillow.
+    
+    Args:
+        image_data: Raw image bytes
+        save_path: Path where to save the compressed image
+        max_size: Maximum dimension (width or height) in pixels
+        quality: JPEG quality 1-100
+    
+    Returns:
+        Dict with compression stats
+    """
+    original_size = len(image_data)
+    
+    # Open image with Pillow
+    img = Image.open(io.BytesIO(image_data))
+    original_dimensions = img.size
+    
+    # Convert to RGB if necessary (handles RGBA, P mode, etc.)
+    if img.mode in ('RGBA', 'P', 'LA'):
+        # Create white background for transparent images
+        background = Image.new('RGB', img.size, (255, 255, 255))
+        if img.mode == 'P':
+            img = img.convert('RGBA')
+        background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+        img = background
+    elif img.mode != 'RGB':
+        img = img.convert('RGB')
+    
+    # Resize if larger than max_size (maintain aspect ratio)
+    if img.width > max_size or img.height > max_size:
+        img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
+    
+    # Save as compressed JPEG
+    # Always save as .jpg for consistency
+    save_path = save_path.with_suffix('.jpg')
+    img.save(save_path, 'JPEG', quality=quality, optimize=True)
+    
+    compressed_size = save_path.stat().st_size
+    reduction = (1 - compressed_size / original_size) * 100 if original_size > 0 else 0
+    
+    return {
+        "path": save_path,
+        "original_size": original_size,
+        "compressed_size": compressed_size,
+        "reduction_percent": reduction,
+        "original_dimensions": original_dimensions,
+        "new_dimensions": img.size
+    }
 
 
 @app.on_event("startup")
@@ -136,21 +194,29 @@ async def upload_images(
         }
         
         saved_files = {}
+        compression_stats = {}
         
-        # Save each image
+        # Save and compress each image
         for image_type, file in image_types.items():
-            # Get file extension
-            file_extension = os.path.splitext(file.filename)[1] or ".jpg"
+            # Create file path (will be saved as .jpg after compression)
+            file_path = user_folder / f"{image_type}.jpg"
             
-            # Create file path
-            file_path = user_folder / f"{image_type}{file_extension}"
-            
-            # Read and save the file
+            # Read the file
             contents = await file.read()
-            with open(file_path, "wb") as f:
-                f.write(contents)
+            
+            # Compress and save the image
+            stats = compress_image(contents, file_path)
+            file_path = stats["path"]  # Get the actual saved path (.jpg)
             
             saved_files[image_type] = str(file_path.relative_to(BASE_DIR))
+            compression_stats[image_type] = {
+                "original_kb": round(stats["original_size"] / 1024, 1),
+                "compressed_kb": round(stats["compressed_size"] / 1024, 1),
+                "reduction": f"{stats['reduction_percent']:.0f}%",
+                "dimensions": f"{stats['new_dimensions'][0]}x{stats['new_dimensions'][1]}"
+            }
+            
+            print(f"   📦 {image_type}: {stats['original_size']/1024:.1f}KB → {stats['compressed_size']/1024:.1f}KB ({stats['reduction_percent']:.0f}% reduction)")
             
             # Save to database
             user_image = UserImage(
@@ -165,10 +231,11 @@ async def upload_images(
         return JSONResponse(
             status_code=200,
             content={
-                "message": "Images uploaded successfully",
+                "message": "Images uploaded and compressed successfully",
                 "user_folder": str(user_folder.relative_to(BASE_DIR)),
                 "user_id": user.id,
-                "saved_files": saved_files
+                "saved_files": saved_files,
+                "compression": compression_stats
             }
         )
     
