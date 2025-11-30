@@ -136,7 +136,7 @@ def search_google_shopping(
         data = response.json()
     except requests.exceptions.RequestException as e:
         print(f"❌ Error fetching from SerpApi: {e}")
-            return []
+        return []
     except json.JSONDecodeError as e:
         print(f"❌ Error parsing API response: {e}")
         return []
@@ -329,7 +329,7 @@ if __name__ == "__main__":
     print("RESULTS")
     print("=" * 60)
 
-        if results:
+    if results:
         for i, item in enumerate(results, 1):
             print(f"\n{i}. {item['title']}")
             if item.get('source'):
@@ -349,5 +349,5 @@ if __name__ == "__main__":
         with open("products.json", "w") as f:
             json.dump(results, f, indent=2)
             print("\n✅ Saved results to products.json")
-        else:
+    else:
         print("No products found. Check your SERPI_API key or try a different query.")
