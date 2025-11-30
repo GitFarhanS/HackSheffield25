@@ -2,10 +2,12 @@ import requests
 import json
 import urllib.parse
 import os
+import io
 from pathlib import Path
 from dotenv import load_dotenv
 from typing import Optional
 from sqlalchemy.orm import Session
+from PIL import Image
 
 try:
     from backend.models import Product
@@ -28,9 +30,16 @@ HEADERS = {
 }
 
 
-def download_image(image_url: str, save_path: Path) -> bool:
+def download_image(image_url: str, save_path: Path, max_size: int = 512, quality: int = 85) -> bool:
     """
-    Download an image from URL and save it to the specified path.
+    Download an image from URL, compress it using Pillow, and save it.
+    
+    Args:
+        image_url: URL of the image to download
+        save_path: Path where to save the compressed image
+        max_size: Maximum dimension (width or height) in pixels (default: 512)
+        quality: JPEG quality 1-100 (default: 85)
+    
     Returns True if successful, False otherwise.
     """
     if not image_url:
@@ -41,13 +50,36 @@ def download_image(image_url: str, save_path: Path) -> bool:
         response = requests.get(image_url, headers=HEADERS, timeout=15)
         response.raise_for_status()
         
-        # Save the image
-        with open(save_path, 'wb') as f:
-            f.write(response.content)
+        # Open image with Pillow
+        img = Image.open(io.BytesIO(response.content))
+        
+        # Convert to RGB if necessary (handles RGBA, P mode, etc.)
+        if img.mode in ('RGBA', 'P', 'LA'):
+            # Create white background for transparent images
+            background = Image.new('RGB', img.size, (255, 255, 255))
+            if img.mode == 'P':
+                img = img.convert('RGBA')
+            background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+            img = background
+        elif img.mode != 'RGB':
+            img = img.convert('RGB')
+        
+        # Resize if larger than max_size (maintain aspect ratio)
+        if img.width > max_size or img.height > max_size:
+            img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
+        
+        # Save as compressed JPEG
+        img.save(save_path, 'JPEG', quality=quality, optimize=True)
+        
+        # Log compression stats
+        original_size = len(response.content)
+        compressed_size = save_path.stat().st_size
+        reduction = (1 - compressed_size / original_size) * 100 if original_size > 0 else 0
+        print(f"   📦 Compressed: {original_size/1024:.1f}KB → {compressed_size/1024:.1f}KB ({reduction:.0f}% reduction)")
         
         return True
     except Exception as e:
-        print(f"   ⚠️  Failed to download image: {e}")
+        print(f"   ⚠️  Failed to download/compress image: {e}")
         return False
 
 
@@ -97,14 +129,14 @@ def search_google_shopping(
         "hl": "en",  # Language: English
         # "tbs": "mr:1,merchagg:m113940428",  # Optional: Filter to House of Fraser only
     }
-    
+
     try:
         response = requests.get(SERPAPI_ENDPOINT, params=params, timeout=30)
         response.raise_for_status()
         data = response.json()
     except requests.exceptions.RequestException as e:
         print(f"❌ Error fetching from SerpApi: {e}")
-        return []
+            return []
     except json.JSONDecodeError as e:
         print(f"❌ Error parsing API response: {e}")
         return []
@@ -113,7 +145,7 @@ def search_google_shopping(
     if "error" in data:
         print(f"❌ SerpApi error: {data['error']}")
         return []
-    
+
     products = []
     
     # Set up product directories if user_folder_path is provided
@@ -296,8 +328,8 @@ if __name__ == "__main__":
     print("\n" + "=" * 60)
     print("RESULTS")
     print("=" * 60)
-    
-    if results:
+
+        if results:
         for i, item in enumerate(results, 1):
             print(f"\n{i}. {item['title']}")
             if item.get('source'):
@@ -317,5 +349,5 @@ if __name__ == "__main__":
         with open("products.json", "w") as f:
             json.dump(results, f, indent=2)
             print("\n✅ Saved results to products.json")
-    else:
+        else:
         print("No products found. Check your SERPI_API key or try a different query.")
