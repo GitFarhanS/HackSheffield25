@@ -29,6 +29,6 @@ uv.lock
 Thumbs.db
 
 # Data (optional - uncomment if you don't want to track user images)
-# data/user_images/
+data/user_images/
 
 google-cloud-sdk/
